@@ -5,9 +5,9 @@ use std::process::ExitStatus;
 
 
 pub struct Test<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> {
-    name: String,
-    args: Vec<T1>,
-    env: Vec<(T2, T3)>,
+    pub name: String,
+    pub args: Vec<T1>,
+    pub env: Vec<(T2, T3)>,
 }
 
 impl<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> Test<T1, T2, T3> {
