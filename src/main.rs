@@ -1,3 +1,5 @@
+extern crate termion;
+
 #[macro_use]
 mod eprint;
 mod test;

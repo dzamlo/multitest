@@ -33,27 +33,27 @@ impl<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> Test<T1, T2, T3> {
 
     pub fn run(&self) -> bool {
 
-        eprintln!("Running test {}", self.name);
+        eprintln_bold!("Running test {}", self.name);
 
         let command_result = self.run_command();
 
         match command_result {
             Err(error) => {
-                eprintln!("Test {} failed: {}", self.name, error);
+                eprintln_red!("Test {} failed: {}", self.name, error);
                 false
 
             }
             Ok(status) => {
                 if status.success() {
-                    eprintln!("Test {} was successful", self.name);
+                    eprintln_green!("Test {} was successful", self.name);
                     true
                 } else {
                     match status.code() {
                         Some(code) => {
-                            eprintln!("Test {} failed: exit code {}", self.name, code);
+                            eprintln_red!("Test {} failed: exit code {}", self.name, code);
                         }
                         None => {
-                            eprintln!("Test {} failed: no exit code", self.name);
+                            eprintln_red!("Test {} failed: no exit code", self.name);
                         }
                     }
                     false
