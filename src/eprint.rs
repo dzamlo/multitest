@@ -24,18 +24,18 @@ macro_rules! eprintln_bold {
 
 macro_rules! eprintln_green {
     ($($args:tt)*) => {{
-        use termion::{color, style};
+        use termion::{color};
         eprint!("{}", color::Fg(color::Green));
         eprintln!( $($args)*);
-        eprint!("{}", style::Reset);
+        eprint!("{}", color::Fg(color::Reset));
     }};
 }
 
 macro_rules! eprintln_red {
     ($($args:tt)*) => {{
-        use termion::{color, style};
+        use termion::{color};
         eprint!("{}", color::Fg(color::Red));
         eprintln!( $($args)*);
-        eprint!("{}", style::Reset);
+        eprint!("{}", color::Fg(color::Reset));
     }};
 }
