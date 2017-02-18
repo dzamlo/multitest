@@ -1,4 +1,5 @@
 extern crate termion;
+extern crate toml;
 
 #[macro_use]
 mod eprint;
@@ -61,7 +62,7 @@ fn main() {
 
     let success = match tests {
         Ok(tests) => run_tests(tests),
-        Err(()) => {  
+        Err(()) => {
             false
         }
     };

@@ -5,3 +5,4 @@ authors = ["Loïc Damien <loic.damien@dzamlo.ch>"]
 
 [dependencies]
 termion = "1.0"
+toml = "0.3.0"
