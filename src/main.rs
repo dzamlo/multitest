@@ -2,6 +2,7 @@ extern crate termion;
 
 #[macro_use]
 mod eprint;
+mod config;
 mod test;
 
 use std::ffi::OsStr;
@@ -54,20 +55,16 @@ fn run_tests<T1: AsRef<OsStr>,
 }
 
 fn main() {
-    let test1 = Test::new("test1",
-                          vec!["env".to_string()],
-                          vec![("TARGET".to_string(), "TEST".to_string())]);
-    let test2 = Test::new("test2",
-                          vec!["true".to_string()],
-                          vec![("TARGET".to_string(), "TEST".to_string())]);
-    let test3 = Test::new("test3",
-                          vec!["false".to_string()],
-                          vec![("TARGET".to_string(), "TEST".to_string())]);
-    let test4 = Test::new("test4",
-                          vec!["command_that_dont_exist".to_string()],
-                          vec![("TARGET".to_string(), "TEST".to_string())]);
 
-    let tests = vec![test1, test2, test3, test4];
-    let success = run_tests(tests);
+
+    let tests = config::load_config();
+
+    let success = match tests {
+        Ok(tests) => run_tests(tests),
+        Err(()) => {  
+            false
+        }
+    };
+
     exit(if success { 0 } else { 1 });
 }
