@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Loïc Damien <loic.damien@dzamlo.ch>"]
 
 [dependencies]
+clap = "2.20"
 regex = "0.2"
 termion = "1.0"
 toml = "0.3.0"

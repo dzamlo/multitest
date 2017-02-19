@@ -1,14 +1,16 @@
+#[macro_use]
+extern crate clap;
 extern crate regex;
 extern crate termion;
 extern crate toml;
 
 #[macro_use]
 mod eprint;
+mod cli;
 mod config;
 mod test;
 
 use regex::Regex;
-use std::env;
 use std::ffi::OsStr;
 use std::process::exit;
 use test::Test;
@@ -18,24 +20,8 @@ fn run_tests<T1: AsRef<OsStr>,
              T3: AsRef<OsStr>,
              T: IntoIterator<Item = Test<T1, T2, T3>>>
     (tests: T,
-     filter: Option<String>)
+     filter: Option<Regex>)
      -> bool {
-
-
-    let filter = match filter {
-        Some(filter) => {
-            let regex = Regex::new(&*filter);
-            match regex {
-                Ok(regex) => Some(regex),
-                Err(error) => {
-                    eprintln_red!("Filter is not a valid regular expression: {}", error);
-                    return false;
-                }
-            }
-        }
-        None => None,
-    };
-
     let mut successes = vec![];
     let mut failures = vec![];
     let mut ignored = 0;
@@ -90,10 +76,13 @@ fn run_tests<T1: AsRef<OsStr>,
 
 fn main() {
 
+    let matches = cli::build_cli().get_matches();
 
-    let tests = config::load_config();
+    let config_file = matches.value_of_os("config_file");
+    let filter = matches.value_of("filter").map(|filter| Regex::new(filter).unwrap());
 
-    let filter = env::args().skip(1).next();
+    let tests = config::load_config(config_file);
+
 
     let success = match tests {
         Ok(tests) => run_tests(tests, filter),

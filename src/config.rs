@@ -1,4 +1,5 @@
 use std::env;
+use std::ffi::OsStr;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -8,14 +9,14 @@ use toml::Value;
 const CONFIG_FILE_NAME: &'static str = "multitest.toml";
 
 
-pub fn find_config_file_dir() -> Option<PathBuf> {
+pub fn find_config_file() -> Option<PathBuf> {
     let current_dir = env::current_dir().unwrap();
     let mut current = &*current_dir;
 
     loop {
         let config_file = current.join(CONFIG_FILE_NAME);
         if config_file.metadata().is_ok() {
-            return Some(current.to_path_buf());
+            return Some(config_file.to_path_buf());
         }
 
         match current.parent() {
@@ -53,28 +54,37 @@ fn env_from_table(table: &Value) -> Result<(String, String), ()> {
     }
 }
 
-pub fn load_config() -> Result<Vec<Test<String, String, String>>, ()> {
-    // We move to the directory containing the configuration file. This way tests are always executed from this directory.
-    match find_config_file_dir() {
-        Some(dir) => {
-            if env::set_current_dir(dir).is_err() {
-                eprintln_red!("Cannot move the directory containing {}", CONFIG_FILE_NAME);
-                return Err(());
-            }
-        }
+pub fn load_config(config_filename: Option<&OsStr>)
+                   -> Result<Vec<Test<String, String, String>>, ()> {
+
+    let config_filename = match config_filename.map(PathBuf::from).or_else(find_config_file) {
+        Some(config_filename) => config_filename,
         None => {
             eprintln_red!("{} not found", CONFIG_FILE_NAME);
             return Err(());
         }
     };
 
-    let mut config_file = match File::open(CONFIG_FILE_NAME) {
+    let mut config_file = match File::open(&*config_filename) {
         Ok(file) => file,
         Err(error) => {
-            eprintln_red!("Cannot open {}: {}", CONFIG_FILE_NAME, error);
+            eprintln_red!("Cannot open {}: {}", config_filename.display(), error);
             return Err(());
         }
     };
+
+    // We move to the directory containing the configuration file. This way tests are always executed from this directory.
+    let config_dir = config_filename.parent().unwrap();
+
+    if config_dir.to_str() != Some("") {
+        if let Err(error) = env::set_current_dir(config_dir) {
+            eprintln_red!("Cannot move the directory containing {}: {}",
+                          config_filename.display(),
+                          error);
+            return Err(());
+        }
+    }
+
 
     let mut config_text = String::new();
 
@@ -137,8 +147,6 @@ pub fn load_config() -> Result<Vec<Test<String, String, String>>, ()> {
         }
 
     }
-
-
 
     Ok(collected_tests)
 }
