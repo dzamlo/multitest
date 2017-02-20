@@ -67,29 +67,46 @@ impl TestTemplate {
 #[derive(Debug)]
 struct Variable {
     name: String,
-    values: Vec<String>,
+    values: Vec<liquid::Value>,
 }
 
 impl Variable {
     fn try_from_tuple((key, value): (&String, &Value)) -> Result<Variable, ()> {
         let name = key.clone();
 
-        let values = match value.as_array()
-            .iter()
-            .flat_map(|array| array.iter().map(Value::as_str))
-            .map(|option_str| option_str.map(String::from))
-            .collect::<Option<Vec<_>>>() {
-            Some(values) => values,
-            None => {
-                eprintln_red!("The values of the variables must be string arrays");
-                return Err(());
-            }
-        };
+        match value.as_array() {
+            Some(values) => {
+                let values = values.iter().map(toml_value_to_liquid).collect();
 
-        Ok(Variable {
-            name: name,
-            values: values,
-        })
+                Ok(Variable {
+                    name: name,
+                    values: values,
+                })
+            }
+            None => {
+                eprintln_red!("The values of the variables must be arrays");
+                Err(())
+            }
+        }
+
+    }
+}
+
+fn toml_value_to_liquid(toml_value: &Value) -> liquid::Value {
+    match *toml_value {
+        Value::String(ref value) => liquid::Value::Str(value.clone()),
+        Value::Integer(value) => liquid::Value::Num(value as f32),
+        Value::Float(value) => liquid::Value::Num(value as f32),
+        Value::Boolean(value) => liquid::Value::Bool(value),
+        Value::Datetime(ref value) => liquid::Value::Str(value.to_string()),
+        Value::Array(ref value) => {
+            liquid::Value::Array(value.iter().map(toml_value_to_liquid).collect())
+        }
+        Value::Table(ref value) => {
+            liquid::Value::Object(value.iter()
+                .map(|(key, value)| (key.clone(), toml_value_to_liquid(value)))
+                .collect())
+        }
     }
 }
 
@@ -252,8 +269,7 @@ fn gen_matrices(test_template: &TestTemplate,
         let current_variable = &variables[0];
         let current_variable_name = &current_variable.name;
         for value in &current_variable.values {
-            variables_values.insert(current_variable_name.to_string(),
-                                    liquid::Value::Str(value.clone()));
+            variables_values.insert(current_variable_name.to_string(), value.clone());
             gen_matrices(test_template,
                          &variables[1..],
                          variables_values,
