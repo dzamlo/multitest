@@ -1,3 +1,5 @@
+use liquid::{self, Context, Renderable, Template};
+use std::collections::HashMap;
 use std::env;
 use std::ffi::OsStr;
 use std::fs::File;
@@ -8,6 +10,88 @@ use toml::Value;
 
 const CONFIG_FILE_NAME: &'static str = "multitest.toml";
 
+
+pub struct TestTemplate {
+    pub name: Template,
+    pub args: Vec<Template>,
+    pub env: Vec<(Template, Template)>,
+}
+
+
+impl TestTemplate {
+    fn try_from_test(test: &Test<String, String, String>) -> Result<TestTemplate, ()> {
+
+        let name_template = match liquid::parse(&*test.name, Default::default()) {
+            Ok(name_template) => name_template,
+            Err(error) => {
+                eprintln_red!("error while parsing name template: {}", error);
+                return Err(());
+            }
+        };
+
+
+        let args_templates = test.args
+            .iter()
+            .map(|arg| {
+                liquid::parse(&*arg, Default::default()).map_err(|error| {
+                    eprintln_red!("error while parsing an arg template: {}", error)
+                })
+            })
+            .collect::<Result<Vec<_>, ()>>()?;
+
+
+        let env_templates =
+            test.env
+                .iter()
+                .map(|&(ref name, ref value)| {
+                    let name = liquid::parse(&name, Default::default()).map_err(|error| {
+                            eprintln_red!("error while parsing an arg template: {}", error)
+                        })?;
+                    let value = liquid::parse(&value, Default::default()).map_err(|error| {
+                            eprintln_red!("error while parsing an arg template: {}", error)
+                        })?;
+
+                    Ok((name, value))
+                })
+                .collect::<Result<Vec<_>, ()>>()?;
+
+
+        Ok(TestTemplate {
+            name: name_template,
+            args: args_templates,
+            env: env_templates,
+        })
+    }
+}
+
+#[derive(Debug)]
+struct Variable {
+    name: String,
+    values: Vec<String>,
+}
+
+impl Variable {
+    fn try_from_tuple((key, value): (&String, &Value)) -> Result<Variable, ()> {
+        let name = key.clone();
+
+        let values = match value.as_array()
+            .iter()
+            .flat_map(|array| array.iter().map(Value::as_str))
+            .map(|option_str| option_str.map(String::from))
+            .collect::<Option<Vec<_>>>() {
+            Some(values) => values,
+            None => {
+                eprintln_red!("The values of the variables must be string arrays");
+                return Err(());
+            }
+        };
+
+        Ok(Variable {
+            name: name,
+            values: values,
+        })
+    }
+}
 
 pub fn find_config_file() -> Option<PathBuf> {
     let current_dir = env::current_dir().unwrap();
@@ -32,6 +116,44 @@ pub fn find_config_file() -> Option<PathBuf> {
     None
 }
 
+fn test_from_toml(test: &Value) -> Result<Test<String, String, String>, ()> {
+    let name = match test.get("name").and_then(Value::as_str) {
+        Some(name) => name,
+        None => {
+            eprintln_red!("Error: test without a name");
+            return Err(());
+        }
+    };
+
+    let args = match test.get("args").and_then(Value::as_array) {
+        Some(args) => {
+            let args: Option<Vec<_>> =
+                args.iter().map(Value::as_str).map(|arg| arg.map(|s| s.to_string())).collect();
+            match args {
+                Some(args) => args,
+                None => {
+                    eprintln_red!("Error: invalid args for \"{}\"", name);
+                    return Err(());
+                }
+            }
+        }
+        None => {
+            eprintln_red!("Error: test without args");
+            return Err(());
+        }
+    };
+
+    let env = match test.get("env").and_then(Value::as_array) {
+        Some(env) => {
+            let env: Result<Vec<_>, ()> = env.iter().map(env_from_table).collect();
+            env?
+        }
+        None => vec![],
+    };
+
+    Ok(Test::new(name, args, env))
+}
+
 fn env_from_table(table: &Value) -> Result<(String, String), ()> {
     let name = table.get("name").and_then(Value::as_str);
     let value = table.get("value").and_then(Value::as_str);
@@ -54,6 +176,94 @@ fn env_from_table(table: &Value) -> Result<(String, String), ()> {
     }
 }
 
+fn gen_matrices(test_template: &TestTemplate,
+                variables: &[Variable],
+                variables_values: &mut HashMap<String, liquid::Value>,
+                collected_test: &mut Vec<Test<String, String, String>>)
+                -> Result<(), ()> {
+    if variables.is_empty() {
+
+
+        let mut context = Context::with_values(variables_values.clone());
+        let name = match test_template.name.render(&mut context) {
+            Ok(Some(name)) => name,
+            Ok(None) => "".to_string(),
+            Err(error) => {
+                eprintln_red!("error while rendering name template: {}", error);
+                return Err(());
+            }
+        };
+
+        variables_values.insert("name".to_string(), liquid::Value::Str(name.clone()));
+
+
+        let args = test_template.args
+            .iter()
+            .map(|arg_template| {
+                let mut context = Context::with_values(variables_values.clone());
+
+
+                match arg_template.render(&mut context) {
+                    Ok(Some(name)) => Ok(name),
+                    Ok(None) => Ok("".to_string()),
+                    Err(error) => {
+                        eprintln_red!("error while rendering a name template: {}", error);
+                        Err(())
+                    }
+                }
+            })
+            .collect::<Result<Vec<_>, ()>>()?;
+
+        let env = test_template.env
+            .iter()
+            .map(|&(ref name_template, ref value_template)| {
+                let mut context = Context::with_values(variables_values.clone());
+                let name = match name_template.render(&mut context) {
+                    Ok(Some(name)) => Ok(name),
+                    Ok(None) => Ok("".to_string()),
+                    Err(error) => {
+                        eprintln_red!("error while rendering an environment variable name \
+                                       template: {}",
+                                      error);
+                        Err(())
+                    }
+                }?;
+
+                let mut context = Context::with_values(variables_values.clone());
+                let value = match value_template.render(&mut context) {
+                    Ok(Some(name)) => Ok(name),
+                    Ok(None) => Ok("".to_string()),
+                    Err(error) => {
+                        eprintln_red!("error while rendering an environment variable value \
+                                       template: {}",
+                                      error);
+                        Err(())
+                    }
+                }?;
+
+                Ok((name, value))
+            })
+            .collect::<Result<Vec<_>, ()>>()?;
+
+        collected_test.push(Test::new(name, args, env));
+
+        Ok(())
+    } else {
+        let current_variable = &variables[0];
+        let current_variable_name = &current_variable.name;
+        for value in &current_variable.values {
+            variables_values.insert(current_variable_name.to_string(),
+                                    liquid::Value::Str(value.clone()));
+            gen_matrices(test_template,
+                         &variables[1..],
+                         variables_values,
+                         collected_test)?;
+        }
+
+        Ok(())
+    }
+}
+
 pub fn load_config(config_filename: Option<&OsStr>)
                    -> Result<Vec<Test<String, String, String>>, ()> {
 
@@ -73,7 +283,8 @@ pub fn load_config(config_filename: Option<&OsStr>)
         }
     };
 
-    // We move to the directory containing the configuration file. This way tests are always executed from this directory.
+    // We move to the directory containing the configuration file. This way tests are always
+    // executed from this directory.
     let config_dir = config_filename.parent().unwrap();
 
     if config_dir.to_str() != Some("") {
@@ -105,47 +316,25 @@ pub fn load_config(config_filename: Option<&OsStr>)
     let mut collected_tests = vec![];
 
     if let Some(tests) = config_parsed.get("tests").and_then(Value::as_array) {
+
         for test in tests {
-            let name = match test.get("name").and_then(Value::as_str) {
-                Some(name) => name,
-                None => {
-                    eprintln_red!("Error: test without a name");
-                    return Err(());
-                }
-            };
+            let test_template = TestTemplate::try_from_test(&test_from_toml(test)?)?;
 
-            let args = match test.get("args").and_then(Value::as_array) {
-                Some(args) => {
-                    let args: Option<Vec<_>> = args.iter()
-                        .map(Value::as_str)
-                        .map(|arg| arg.map(|s| s.to_string()))
-                        .collect();
-                    match args {
-                        Some(args) => args,
-                        None => {
-                            eprintln_red!("Error: invalid args for \"{}\"", name);
-                            return Err(());
-                        }
-                    }
-                }
-                None => {
-                    eprintln_red!("Error: test without args");
-                    return Err(());
-                }
-            };
-
-            let env = match test.get("env").and_then(Value::as_array) {
-                Some(env) => {
-                    let env: Result<Vec<_>, ()> = env.iter().map(env_from_table).collect();
-                    env?
+            let variables = match test.get("variables").and_then(Value::as_table) {
+                Some(table) => {
+                    let variables: Result<Vec<_>, ()> =
+                        table.into_iter().map(Variable::try_from_tuple).collect();
+                    variables?
                 }
                 None => vec![],
             };
 
+            gen_matrices(&test_template,
+                         &variables[..],
+                         &mut HashMap::new(),
+                         &mut collected_tests)?;
 
-            collected_tests.push(Test::new(name, args, env))
         }
-
     }
 
     Ok(collected_tests)

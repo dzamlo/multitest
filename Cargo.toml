@@ -5,6 +5,7 @@ authors = ["Loïc Damien <loic.damien@dzamlo.ch>"]
 
 [dependencies]
 clap = "2.20"
+liquid = "0.9"
 regex = "0.2"
 termion = "1.0"
 toml = "0.3.0"

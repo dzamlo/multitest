@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate clap;
+extern crate liquid;
 extern crate regex;
 extern crate termion;
 extern crate toml;
