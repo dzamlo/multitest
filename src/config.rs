@@ -44,10 +44,10 @@ impl TestTemplate {
             test.env
                 .iter()
                 .map(|&(ref name, ref value)| {
-                    let name = liquid::parse(&name, Default::default()).map_err(|error| {
+                    let name = liquid::parse(name, Default::default()).map_err(|error| {
                             eprintln_red!("error while parsing an arg template: {}", error)
                         })?;
-                    let value = liquid::parse(&value, Default::default()).map_err(|error| {
+                    let value = liquid::parse(value, Default::default()).map_err(|error| {
                             eprintln_red!("error while parsing an arg template: {}", error)
                         })?;
 
