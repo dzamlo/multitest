@@ -3,9 +3,15 @@ name = "multitest"
 version = "0.1.0"
 authors = ["Loïc Damien <loic.damien@dzamlo.ch>"]
 
+build = "build.rs"
+
 [dependencies]
 clap = "2.20"
 liquid = "0.9"
 regex = "0.2"
 termion = "1.0"
 toml = "0.3.0"
+
+[build-dependencies]
+clap = "2.20"
+regex = "0.2"
