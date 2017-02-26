@@ -1,6 +1,6 @@
 [[tests]]
 name = "cargo-test-{{toolchain}}"
-args = ["rustup", "run", "{{toolchain}}", "cargo", "test"]
+args = ["rustup", "run", "{{toolchain}}", "cargo", "test", "--frozen"]
 
 [[tests.env]]
 name = "CARGO_TARGET_DIR"
@@ -11,7 +11,7 @@ toolchain = ["stable", "beta", "nightly"]
 
 [[tests]]
 name = "cargo-clippy"
-args = ["rustup", "run", "nightly", "cargo", "clippy", "--", "-D", "clippy"]
+args = ["rustup", "run", "nightly", "cargo", "clippy", "--frozen", "--", "-D", "clippy"]
 
 [[tests.env]]
 name = "CARGO_TARGET_DIR"
