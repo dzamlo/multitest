@@ -1,4 +1,6 @@
+use shell_escape::escape;
 use std::ffi::OsStr;
+use std::fmt;
 use std::io;
 use std::process::Command;
 use std::process::ExitStatus;
@@ -26,6 +28,25 @@ impl<T1, T2, T3> Test<T1, T2, T3> {
     }
 }
 
+impl<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> fmt::Display for Test<T1, T2, T3> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for &(ref name, ref value) in &self.env[..] {
+            write!(f,
+                   "{}={} ",
+                   escape(name.as_ref().to_string_lossy()),
+                   escape(value.as_ref().to_string_lossy()))?;
+        }
+
+
+        write!(f, "{}", escape(self.args[0].as_ref().to_string_lossy()))?;
+        for arg in &self.args[1..] {
+            write!(f, " {}", escape(arg.as_ref().to_string_lossy()))?;
+        }
+
+        Ok(())
+    }
+}
+
 impl<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> Test<T1, T2, T3> {
     fn run_command(&self) -> io::Result<ExitStatus> {
         let mut command = Command::new(&self.args[0]);
@@ -46,7 +67,7 @@ impl<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> Test<T1, T2, T3> {
 
     pub fn run(&self) -> bool {
 
-        eprintln_bold!("Running test {}", self.name);
+        eprintln_bold!("Running test {} ({})", self.name, self);
 
         let command_result = self.run_command();
 

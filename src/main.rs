@@ -3,6 +3,7 @@ extern crate atty;
 extern crate clap;
 extern crate liquid;
 extern crate regex;
+extern crate shell_escape;
 extern crate termcolor;
 extern crate toml;
 

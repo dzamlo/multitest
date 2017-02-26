@@ -16,7 +16,7 @@ args = ["echo", "{{foo}}", "{% if capitalize %}{{bar | capitalize}}{% else %}{{b
 
 [tests.variables]
 foo = ["aa", "bb"]
-bar = ["cc", "dd"]
+bar = ["c c", "dd"]
 capitalize = [true, false]
 
 
@@ -39,4 +39,4 @@ value = "{{name}}"
 
 [tests.variables]
 foo = ["aa", "bb"]
-bar = ["cc", "dd"]
+bar = ["c c", "dd"]
