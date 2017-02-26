@@ -1,8 +1,9 @@
+extern crate atty;
 #[macro_use]
 extern crate clap;
 extern crate liquid;
 extern crate regex;
-extern crate termion;
+extern crate termcolor;
 extern crate toml;
 
 #[macro_use]
@@ -14,6 +15,7 @@ mod test;
 use regex::Regex;
 use std::ffi::OsStr;
 use std::process::exit;
+use termcolor::ColorChoice;
 use test::Test;
 
 fn run_tests<T1: AsRef<OsStr>,
@@ -81,6 +83,22 @@ fn main() {
 
     let config_file = matches.value_of_os("config_file");
     let filter = matches.value_of("filter").map(|filter| Regex::new(filter).unwrap());
+    let color_choice = match matches.value_of("color").unwrap() {
+        "always" => ColorChoice::Always,
+        "auto" => {
+            if atty::is(atty::Stream::Stderr) {
+                ColorChoice::Auto
+            } else {
+                ColorChoice::Never
+            }
+        }
+        "never" => ColorChoice::Never,
+        _ => unreachable!(),
+    };
+
+    unsafe {
+        eprint::set_color_choice(color_choice);
+    }
 
     let tests = config::load_config(config_file);
 
