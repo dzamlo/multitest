@@ -1,0 +1,42 @@
+[[tests]]
+name = "true"
+args = ["true"]
+
+[[tests]]
+name = "false"
+args = ["false"]
+
+[[tests]]
+name = "command_that_don't_exist"
+args = ["command_that_don't_exist"]
+
+[[tests]]
+name = "variables1-{{foo}}-{{bar}}{% if capitalize %}-capitalize{% endif %}"
+args = ["echo", "{{foo}}", "{% if capitalize %}{{bar | capitalize}}{% else %}{{bar}}{% endif %}"]
+
+[tests.variables]
+foo = ["aa", "bb"]
+bar = ["cc", "dd"]
+capitalize = [true, false]
+
+
+[[tests]]
+name = "variables2-{{foo}}-{{bar}}"
+args = ["env"]
+clear_env = true
+
+[[tests.env]]
+name = "FOO"
+value = "{{foo}}"
+
+[[tests.env]]
+name = "BAR-{{foo | upcase}}"
+value = "{{bar}}"
+
+[[tests.env]]
+name = "TEST_NAME"
+value = "{{name}}"
+
+[tests.variables]
+foo = ["aa", "bb"]
+bar = ["cc", "dd"]

@@ -2,6 +2,7 @@
 name = "multitest"
 version = "0.1.0"
 authors = ["Loïc Damien <loic.damien@dzamlo.ch>"]
+license = "MIT OR Apache-2.0"
 
 build = "build.rs"
 
