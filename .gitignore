@@ -1,2 +1,4 @@
 target
 *.bk
+aur/multitest
+aur/*.pkg.*

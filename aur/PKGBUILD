@@ -1,0 +1,30 @@
+# Maintainer: Loïc Damien <loic.damien at dzamlo dot ch>
+pkgname=multitest-git
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="a tool to run multiple tests"
+arch=('i686' 'x86_64')
+url="https://github.com/dzamlo/multitest"
+license=('MIT' 'Apache')
+depends=(gcc-libs)
+makedepends=(cargo)
+source=("git+https://github.com/dzamlo/multitest.git")
+sha256sums=('SKIP')
+
+build() {
+  cd multitest
+
+  cargo build --release
+}
+
+package() {
+  cd multitest
+
+  install -Dm755 "target/release/multitest" "$pkgdir/usr/bin/multitest"
+  install -Dm644 "target/release/build/multitest-"*"/out/multitest.bash-completion" \
+      "$pkgdir/usr/share/bash-completion/completions/multitest"
+  install -Dm644 "target/release/build/multitest-"*"/out/multitest.fish" \
+      "$pkgdir/usr/share/fish/vendor_completions.d/multitest.fish"
+  install -Dm644 "target/release/build/multitest-"*"/out/_multitest" \
+      "$pkgdir/usr/share/zsh/site-functions/_multitest"
+}
