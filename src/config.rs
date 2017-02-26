@@ -14,6 +14,7 @@ const CONFIG_FILE_NAME: &'static str = "multitest.toml";
 pub struct TestTemplate {
     pub name: Template,
     pub args: Vec<Template>,
+    pub clear_env: bool,
     pub env: Vec<(Template, Template)>,
 }
 
@@ -59,6 +60,7 @@ impl TestTemplate {
         Ok(TestTemplate {
             name: name_template,
             args: args_templates,
+            clear_env: test.clear_env,
             env: env_templates,
         })
     }
@@ -160,6 +162,8 @@ fn test_from_toml(test: &Value) -> Result<Test<String, String, String>, ()> {
         }
     };
 
+    let clear_env = test.get("clear_env").and_then(Value::as_bool).unwrap_or(false);
+
     let env = match test.get("env").and_then(Value::as_array) {
         Some(env) => {
             let env: Result<Vec<_>, ()> = env.iter().map(env_from_table).collect();
@@ -168,7 +172,7 @@ fn test_from_toml(test: &Value) -> Result<Test<String, String, String>, ()> {
         None => vec![],
     };
 
-    Ok(Test::new(name, args, env))
+    Ok(Test::new(name, args, clear_env, env))
 }
 
 fn env_from_table(table: &Value) -> Result<(String, String), ()> {
@@ -262,7 +266,7 @@ fn gen_matrices(test_template: &TestTemplate,
             })
             .collect::<Result<Vec<_>, ()>>()?;
 
-        collected_test.push(Test::new(name, args, env));
+        collected_test.push(Test::new(name, args, test_template.clear_env, env));
 
         Ok(())
     } else {
