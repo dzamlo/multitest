@@ -10,7 +10,6 @@ use toml::Value;
 
 const CONFIG_FILE_NAME: &'static str = "multitest.toml";
 
-
 pub struct TestTemplate {
     pub name: Template,
     pub args: Vec<Template>,
@@ -18,10 +17,8 @@ pub struct TestTemplate {
     pub env: Vec<(Template, Template)>,
 }
 
-
 impl TestTemplate {
     fn try_from_test(test: &Test<String, String, String>) -> Result<TestTemplate, ()> {
-
         let name_template = match liquid::parse(&*test.name, Default::default()) {
             Ok(name_template) => name_template,
             Err(error) => {
@@ -29,7 +26,6 @@ impl TestTemplate {
                 return Err(());
             }
         };
-
 
         let args_templates = test.args
             .iter()
@@ -39,7 +35,6 @@ impl TestTemplate {
                 })
             })
             .collect::<Result<Vec<_>, ()>>()?;
-
 
         let env_templates =
             test.env
@@ -55,7 +50,6 @@ impl TestTemplate {
                     Ok((name, value))
                 })
                 .collect::<Result<Vec<_>, ()>>()?;
-
 
         Ok(TestTemplate {
             name: name_template,
@@ -90,7 +84,6 @@ impl Variable {
                 Err(())
             }
         }
-
     }
 }
 
@@ -203,8 +196,6 @@ fn gen_matrices(test_template: &TestTemplate,
                 collected_test: &mut Vec<Test<String, String, String>>)
                 -> Result<(), ()> {
     if variables.is_empty() {
-
-
         let mut context = Context::with_values(variables_values.clone());
         let name = match test_template.name.render(&mut context) {
             Ok(Some(name)) => name,
@@ -217,12 +208,10 @@ fn gen_matrices(test_template: &TestTemplate,
 
         variables_values.insert("name".to_string(), liquid::Value::Str(name.clone()));
 
-
         let args = test_template.args
             .iter()
             .map(|arg_template| {
                 let mut context = Context::with_values(variables_values.clone());
-
 
                 match arg_template.render(&mut context) {
                     Ok(Some(name)) => Ok(name),
@@ -286,7 +275,6 @@ fn gen_matrices(test_template: &TestTemplate,
 
 pub fn load_config(config_filename: Option<&OsStr>)
                    -> Result<Vec<Test<String, String, String>>, ()> {
-
     let config_filename = match config_filename.map(PathBuf::from).or_else(find_config_file) {
         Some(config_filename) => config_filename,
         None => {
@@ -316,7 +304,6 @@ pub fn load_config(config_filename: Option<&OsStr>)
         }
     }
 
-
     let mut config_text = String::new();
 
     if let Err(error) = config_file.read_to_string(&mut config_text) {
@@ -332,11 +319,9 @@ pub fn load_config(config_filename: Option<&OsStr>)
         }
     };
 
-
     let mut collected_tests = vec![];
 
     if let Some(tests) = config_parsed.get("tests").and_then(Value::as_array) {
-
         for test in tests {
             let test_template = TestTemplate::try_from_test(&test_from_toml(test)?)?;
 
@@ -353,7 +338,6 @@ pub fn load_config(config_filename: Option<&OsStr>)
                          &variables[..],
                          &mut HashMap::new(),
                          &mut collected_tests)?;
-
         }
     }
 

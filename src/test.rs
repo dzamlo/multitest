@@ -5,7 +5,6 @@ use std::io;
 use std::process::Command;
 use std::process::ExitStatus;
 
-
 pub struct Test<T1, T2, T3> {
     pub name: String,
     pub args: Vec<T1>,
@@ -37,7 +36,6 @@ impl<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> fmt::Display for Test
                    escape(value.as_ref().to_string_lossy()))?;
         }
 
-
         write!(f, "{}", escape(self.args[0].as_ref().to_string_lossy()))?;
         for arg in &self.args[1..] {
             write!(f, " {}", escape(arg.as_ref().to_string_lossy()))?;
@@ -61,12 +59,9 @@ impl<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> Test<T1, T2, T3> {
         }
 
         command.status()
-
-
     }
 
     pub fn run(&self) -> bool {
-
         eprintln_bold!("Running test {} ({})", self.name, self);
 
         let command_result = self.run_command();
@@ -75,7 +70,6 @@ impl<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> Test<T1, T2, T3> {
             Err(error) => {
                 eprintln_red!("Test {} failed: {}", self.name, error);
                 false
-
             }
             Ok(status) => {
                 if status.success() {

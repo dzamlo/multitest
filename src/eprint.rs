@@ -2,7 +2,6 @@ use termcolor::ColorChoice;
 
 static mut COLOR_CHOICE: ColorChoice = ColorChoice::Auto;
 
-
 /// This function modify a `static mut` variable. It is unsafe to use after any thread is launched.
 pub unsafe fn set_color_choice(new_color_choice: ColorChoice) {
     COLOR_CHOICE = new_color_choice;
@@ -12,7 +11,6 @@ pub fn color_choice() -> ColorChoice {
     // This function is safe if set_color_choice is never used when there is multiple thread
     unsafe { COLOR_CHOICE }
 }
-
 
 macro_rules! eprint {
     ($($args:tt)*) => {{

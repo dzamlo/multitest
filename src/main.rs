@@ -31,7 +31,6 @@ fn run_tests<T1: AsRef<OsStr>,
     let mut ignored = 0;
 
     for test in tests {
-
         if let Some(ref regex) = filter {
             if !regex.is_match(&*test.name) {
                 ignored += 1;
@@ -59,7 +58,6 @@ fn run_tests<T1: AsRef<OsStr>,
         }
     }
 
-
     if !failures.is_empty() {
         eprintln_red!("Failures ({}/{}):", successes.len(), total);
         for failure in &failures {
@@ -79,7 +77,6 @@ fn run_tests<T1: AsRef<OsStr>,
 }
 
 fn main() {
-
     let matches = cli::build_cli().get_matches();
 
     let config_file = matches.value_of_os("config_file");
@@ -102,7 +99,6 @@ fn main() {
     }
 
     let tests = config::load_config(config_file);
-
 
     let success = match tests {
         Ok(tests) => run_tests(tests, filter),
