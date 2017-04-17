@@ -24,14 +24,14 @@ fn run_tests<T1: AsRef<OsStr>,
              T3: AsRef<OsStr>,
              T: IntoIterator<Item = Test<T1, T2, T3>>>
     (tests: T,
-     filter: Option<Regex>)
+     filter: &Option<Regex>)
      -> bool {
     let mut successes = vec![];
     let mut failures = vec![];
     let mut ignored = 0;
 
     for test in tests {
-        if let Some(ref regex) = filter {
+        if let Some(ref regex) = *filter {
             if !regex.is_match(&*test.name) {
                 ignored += 1;
                 eprintln_bold!("Test {} ignored", test.name);
@@ -103,7 +103,7 @@ fn main() {
     let tests = config::load_config(config_file);
 
     let success = match tests {
-        Ok(tests) => run_tests(tests, filter),
+        Ok(tests) => run_tests(tests, &filter),
         Err(()) => {
             false
         }
