@@ -30,33 +30,34 @@ impl TestTemplate {
         let args_templates = test.args
             .iter()
             .map(|arg| {
-                liquid::parse(&*arg, Default::default()).map_err(|error| {
+                     liquid::parse(&*arg, Default::default()).map_err(|error| {
                     eprintln_red!("error while parsing an arg template: {}", error)
                 })
+                 })
+            .collect::<Result<Vec<_>, ()>>()?;
+
+        let env_templates = test.env
+            .iter()
+            .map(|&(ref name, ref value)| {
+                let name = liquid::parse(name, Default::default())
+                    .map_err(|error| {
+                                 eprintln_red!("error while parsing an arg template: {}", error)
+                             })?;
+                let value = liquid::parse(value, Default::default())
+                    .map_err(|error| {
+                                 eprintln_red!("error while parsing an arg template: {}", error)
+                             })?;
+
+                Ok((name, value))
             })
             .collect::<Result<Vec<_>, ()>>()?;
 
-        let env_templates =
-            test.env
-                .iter()
-                .map(|&(ref name, ref value)| {
-                    let name = liquid::parse(name, Default::default()).map_err(|error| {
-                            eprintln_red!("error while parsing an arg template: {}", error)
-                        })?;
-                    let value = liquid::parse(value, Default::default()).map_err(|error| {
-                            eprintln_red!("error while parsing an arg template: {}", error)
-                        })?;
-
-                    Ok((name, value))
-                })
-                .collect::<Result<Vec<_>, ()>>()?;
-
         Ok(TestTemplate {
-            name: name_template,
-            args: args_templates,
-            clear_env: test.clear_env,
-            env: env_templates,
-        })
+               name: name_template,
+               args: args_templates,
+               clear_env: test.clear_env,
+               env: env_templates,
+           })
     }
 }
 
@@ -75,9 +76,9 @@ impl Variable {
                 let values = values.iter().map(toml_value_to_liquid).collect();
 
                 Ok(Variable {
-                    name: name,
-                    values: values,
-                })
+                       name: name,
+                       values: values,
+                   })
             }
             None => {
                 eprintln_red!("The values of the variables must be arrays");
@@ -98,9 +99,12 @@ fn toml_value_to_liquid(toml_value: &Value) -> liquid::Value {
             liquid::Value::Array(value.iter().map(toml_value_to_liquid).collect())
         }
         Value::Table(ref value) => {
-            liquid::Value::Object(value.iter()
-                .map(|(key, value)| (key.clone(), toml_value_to_liquid(value)))
-                .collect())
+            liquid::Value::Object(value
+                                      .iter()
+                                      .map(|(key, value)| {
+                                               (key.clone(), toml_value_to_liquid(value))
+                                           })
+                                      .collect())
         }
     }
 }
@@ -139,8 +143,10 @@ fn test_from_toml(test: &Value) -> Result<Test<String, String, String>, ()> {
 
     let args = match test.get("args").and_then(Value::as_array) {
         Some(args) => {
-            let args: Option<Vec<_>> =
-                args.iter().map(Value::as_str).map(|arg| arg.map(|s| s.to_string())).collect();
+            let args: Option<Vec<_>> = args.iter()
+                .map(Value::as_str)
+                .map(|arg| arg.map(|s| s.to_string()))
+                .collect();
             match args {
                 Some(args) => args,
                 None => {
@@ -155,7 +161,9 @@ fn test_from_toml(test: &Value) -> Result<Test<String, String, String>, ()> {
         }
     };
 
-    let clear_env = test.get("clear_env").and_then(Value::as_bool).unwrap_or(false);
+    let clear_env = test.get("clear_env")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
 
     let env = match test.get("env").and_then(Value::as_array) {
         Some(env) => {
@@ -208,7 +216,8 @@ fn gen_matrices(test_template: &TestTemplate,
 
         variables_values.insert("name".to_string(), liquid::Value::Str(name.clone()));
 
-        let args = test_template.args
+        let args = test_template
+            .args
             .iter()
             .map(|arg_template| {
                 let mut context = Context::with_values(variables_values.clone());
@@ -224,7 +233,8 @@ fn gen_matrices(test_template: &TestTemplate,
             })
             .collect::<Result<Vec<_>, ()>>()?;
 
-        let env = test_template.env
+        let env = test_template
+            .env
             .iter()
             .map(|&(ref name_template, ref value_template)| {
                 let mut context = Context::with_values(variables_values.clone());
@@ -275,7 +285,9 @@ fn gen_matrices(test_template: &TestTemplate,
 
 pub fn load_config(config_filename: Option<&OsStr>)
                    -> Result<Vec<Test<String, String, String>>, ()> {
-    let config_filename = match config_filename.map(PathBuf::from).or_else(find_config_file) {
+    let config_filename = match config_filename
+              .map(PathBuf::from)
+              .or_else(find_config_file) {
         Some(config_filename) => config_filename,
         None => {
             eprintln_red!("{} not found", CONFIG_FILE_NAME);
@@ -327,8 +339,10 @@ pub fn load_config(config_filename: Option<&OsStr>)
 
             let variables = match test.get("variables").and_then(Value::as_table) {
                 Some(table) => {
-                    let variables: Result<Vec<_>, ()> =
-                        table.into_iter().map(Variable::try_from_tuple).collect();
+                    let variables: Result<Vec<_>, ()> = table
+                        .into_iter()
+                        .map(Variable::try_from_tuple)
+                        .collect();
                     variables?
                 }
                 None => vec![],

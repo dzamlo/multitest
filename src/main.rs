@@ -80,7 +80,9 @@ fn main() {
     let matches = cli::build_cli().get_matches();
 
     let config_file = matches.value_of_os("config_file");
-    let filter = matches.value_of("filter").map(|filter| Regex::new(filter).unwrap());
+    let filter = matches
+        .value_of("filter")
+        .map(|filter| Regex::new(filter).unwrap());
     let color_choice = match matches.value_of("color").unwrap() {
         "always" => ColorChoice::Always,
         "auto" => {
