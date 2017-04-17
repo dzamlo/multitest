@@ -7,20 +7,20 @@ use std::process::ExitStatus;
 
 pub struct Test<T1, T2, T3> {
     pub name: String,
-    pub args: Vec<T1>,
+    pub command: Vec<T1>,
     pub env: Vec<(T2, T3)>,
     pub clear_env: bool,
 }
 
 impl<T1, T2, T3> Test<T1, T2, T3> {
     pub fn new<S: Into<String>>(name: S,
-                                args: Vec<T1>,
+                                command: Vec<T1>,
                                 clear_env: bool,
                                 env: Vec<(T2, T3)>)
                                 -> Test<T1, T2, T3> {
         Test {
             name: name.into(),
-            args: args,
+            command: command,
             clear_env: clear_env,
             env: env,
         }
@@ -36,8 +36,8 @@ impl<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> fmt::Display for Test
                    escape(value.as_ref().to_string_lossy()))?;
         }
 
-        write!(f, "{}", escape(self.args[0].as_ref().to_string_lossy()))?;
-        for arg in &self.args[1..] {
+        write!(f, "{}", escape(self.command[0].as_ref().to_string_lossy()))?;
+        for arg in &self.command[1..] {
             write!(f, " {}", escape(arg.as_ref().to_string_lossy()))?;
         }
 
@@ -47,8 +47,8 @@ impl<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> fmt::Display for Test
 
 impl<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> Test<T1, T2, T3> {
     fn run_command(&self) -> io::Result<ExitStatus> {
-        let mut command = Command::new(&self.args[0]);
-        command.args(&self.args[1..]);
+        let mut command = Command::new(&self.command[0]);
+        command.args(&self.command[1..]);
 
         if self.clear_env {
             command.env_clear();

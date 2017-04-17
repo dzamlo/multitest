@@ -12,7 +12,7 @@ const CONFIG_FILE_NAME: &'static str = "multitest.toml";
 
 pub struct TestTemplate {
     pub name: Template,
-    pub args: Vec<Template>,
+    pub command: Vec<Template>,
     pub clear_env: bool,
     pub env: Vec<(Template, Template)>,
 }
@@ -27,7 +27,7 @@ impl TestTemplate {
             }
         };
 
-        let args_templates = test.args
+        let command_templates = test.command
             .iter()
             .map(|arg| {
                      liquid::parse(&*arg, Default::default()).map_err(|error| {
@@ -54,7 +54,7 @@ impl TestTemplate {
 
         Ok(TestTemplate {
                name: name_template,
-               args: args_templates,
+               command: command_templates,
                clear_env: test.clear_env,
                env: env_templates,
            })
@@ -141,22 +141,23 @@ fn test_from_toml(test: &Value) -> Result<Test<String, String, String>, ()> {
         }
     };
 
-    let args = match test.get("args").and_then(Value::as_array) {
-        Some(args) => {
-            let args: Option<Vec<_>> = args.iter()
+    let command = match test.get("command").and_then(Value::as_array) {
+        Some(command) => {
+            let command: Option<Vec<_>> = command
+                .iter()
                 .map(Value::as_str)
                 .map(|arg| arg.map(|s| s.to_string()))
                 .collect();
-            match args {
-                Some(args) => args,
+            match command {
+                Some(command) => command,
                 None => {
-                    eprintln_red!("Error: invalid args for \"{}\"", name);
+                    eprintln_red!("Error: invalid command for \"{}\"", name);
                     return Err(());
                 }
             }
         }
         None => {
-            eprintln_red!("Error: test without args");
+            eprintln_red!("Error: test without command");
             return Err(());
         }
     };
@@ -173,7 +174,7 @@ fn test_from_toml(test: &Value) -> Result<Test<String, String, String>, ()> {
         None => vec![],
     };
 
-    Ok(Test::new(name, args, clear_env, env))
+    Ok(Test::new(name, command, clear_env, env))
 }
 
 fn env_from_table(table: &Value) -> Result<(String, String), ()> {
@@ -216,8 +217,8 @@ fn gen_matrices(test_template: &TestTemplate,
 
         variables_values.insert("name".to_string(), liquid::Value::Str(name.clone()));
 
-        let args = test_template
-            .args
+        let command = test_template
+            .command
             .iter()
             .map(|arg_template| {
                 let mut context = Context::with_values(variables_values.clone());
@@ -265,7 +266,7 @@ fn gen_matrices(test_template: &TestTemplate,
             })
             .collect::<Result<Vec<_>, ()>>()?;
 
-        collected_test.push(Test::new(name, args, test_template.clear_env, env));
+        collected_test.push(Test::new(name, command, test_template.clear_env, env));
 
         Ok(())
     } else {

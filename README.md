@@ -35,7 +35,7 @@ The configuration file contains a description of the tests to run.
 
 A test is generated for each element of the Cartesian product of its variables.
 
-The test name, args, and environment variables names and values use [liquid].
+The test name, command, and environment variables names and values use [liquid].
 
 [liquid]: http://liquidmarkup.org/
 
