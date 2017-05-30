@@ -286,9 +286,7 @@ fn gen_matrices(test_template: &TestTemplate,
 
 pub fn load_config(config_filename: Option<&OsStr>)
                    -> Result<Vec<Test<String, String, String>>, ()> {
-    let config_filename = match config_filename
-              .map(PathBuf::from)
-              .or_else(find_config_file) {
+    let config_filename = match config_filename.map(PathBuf::from).or_else(find_config_file) {
         Some(config_filename) => config_filename,
         None => {
             eprintln_red!("{} not found", CONFIG_FILE_NAME);
@@ -340,10 +338,8 @@ pub fn load_config(config_filename: Option<&OsStr>)
 
             let variables = match test.get("variables").and_then(Value::as_table) {
                 Some(table) => {
-                    let variables: Result<Vec<_>, ()> = table
-                        .into_iter()
-                        .map(Variable::try_from_tuple)
-                        .collect();
+                    let variables: Result<Vec<_>, ()> =
+                        table.into_iter().map(Variable::try_from_tuple).collect();
                     variables?
                 }
                 None => vec![],
