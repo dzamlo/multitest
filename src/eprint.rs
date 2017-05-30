@@ -12,20 +12,6 @@ pub fn color_choice() -> ColorChoice {
     unsafe { COLOR_CHOICE }
 }
 
-macro_rules! eprint {
-    ($($args:tt)*) => {{
-        use std::io::Write;
-        let _ = write!(::std::io::stderr(), $($args)*);
-    }};
-}
-
-macro_rules! eprintln {
-    ($($args:tt)*) => {{
-        use std::io::Write;
-        let _ = writeln!(::std::io::stderr(), $($args)*);
-    }};
-}
-
 macro_rules! eprintln_color {
     ($color_spec:expr, $($args:tt)*) => {{
         use std::io::Write;
