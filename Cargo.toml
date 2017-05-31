@@ -9,11 +9,11 @@ build = "build.rs"
 [dependencies]
 atty = "0.2"
 clap = "2.20"
-liquid = "0.9"
+liquid = "0.10"
 shell-escape = "0.1"
 regex = "0.2"
 termcolor = "0.3"
-toml = "0.3.0"
+toml = "0.4"
 
 [build-dependencies]
 clap = "2.20"
