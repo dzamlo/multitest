@@ -1,0 +1,14 @@
+include = ["../multitest-demo2.toml"]
+
+[[tests]]
+name = "pwd"
+command = ["pwd"]
+
+[[tests]]
+name = "true"
+command = ["true"]
+
+[[tests]]
+name = "false"
+command = ["false"]
+

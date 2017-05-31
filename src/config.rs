@@ -1,10 +1,11 @@
 use liquid::{self, Context, Renderable, Template};
+use regex::Regex;
 use std::collections::HashMap;
 use std::env;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use test::Test;
 use toml::Value;
 
@@ -61,6 +62,58 @@ impl TestTemplate {
     }
 }
 
+#[derive(Default)]
+pub struct RunConfigResult {
+    ignored: u32,
+    successes: Vec<String>,
+    failures: Vec<String>,
+}
+
+impl RunConfigResult {
+    pub fn merge(&mut self, other: RunConfigResult) {
+        self.ignored += other.ignored;
+        self.successes.extend(other.successes);
+        self.failures.extend(other.failures);
+    }
+
+    pub fn summary(&self) {
+        let ignored = self.ignored;
+        let successes = &self.successes;
+        let failures = &self.failures;
+
+        let total = successes.len() + failures.len();
+
+        if !successes.is_empty() {
+            eprintln_green!("Successes ({}/{}):", successes.len(), total);
+            for success in successes {
+                eprintln_green!("  {}", success);
+            }
+        }
+
+        if !failures.is_empty() {
+            eprintln_red!("Failures ({}/{}):", successes.len(), total);
+            for failure in failures {
+                eprintln_red!("  {}", failure);
+            }
+        }
+
+        if ignored > 0 {
+            eprintln_bold!("{} tests ignored", ignored);
+        }
+
+        if total == 0 {
+            eprintln_red!("No tests executed")
+        }
+    }
+
+    pub fn is_success(&self) -> bool {
+        let total = self.successes.len() + self.failures.len();
+
+        self.failures.is_empty() && total > 0
+    }
+}
+
+
 #[derive(Debug)]
 struct Variable {
     name: String,
@@ -86,6 +139,11 @@ impl Variable {
             }
         }
     }
+}
+
+struct ParseResult {
+    tests: Vec<Test<String, String, String>>,
+    includes: Vec<String>,
 }
 
 fn toml_value_to_liquid(toml_value: &Value) -> liquid::Value {
@@ -284,16 +342,7 @@ fn gen_matrices(test_template: &TestTemplate,
     }
 }
 
-pub fn load_config(config_filename: Option<&OsStr>)
-                   -> Result<Vec<Test<String, String, String>>, ()> {
-    let config_filename = match config_filename.map(PathBuf::from).or_else(find_config_file) {
-        Some(config_filename) => config_filename,
-        None => {
-            eprintln_red!("{} not found", CONFIG_FILE_NAME);
-            return Err(());
-        }
-    };
-
+fn parse_config(config_filename: &Path) -> Result<ParseResult, ()> {
     let mut config_file = match File::open(&*config_filename) {
         Ok(file) => file,
         Err(error) => {
@@ -302,18 +351,6 @@ pub fn load_config(config_filename: Option<&OsStr>)
         }
     };
 
-    // We move to the directory containing the configuration file. This way tests are always
-    // executed from this directory.
-    let config_dir = config_filename.parent().unwrap();
-
-    if config_dir.to_str() != Some("") {
-        if let Err(error) = env::set_current_dir(config_dir) {
-            eprintln_red!("Cannot move the directory containing {}: {}",
-                          config_filename.display(),
-                          error);
-            return Err(());
-        }
-    }
 
     let mut config_text = String::new();
 
@@ -352,5 +389,99 @@ pub fn load_config(config_filename: Option<&OsStr>)
         }
     }
 
-    Ok(collected_tests)
+    let mut collected_includes = vec![];
+
+    if let Some(includes) = config_parsed.get("includes").and_then(Value::as_array) {
+        for include in includes {
+            match Value::as_str(include) {
+                Some(include) => collected_includes.push(include.to_string()),
+                None => {
+                    eprintln_red!("includes must be strings");
+                    return Err(());
+                }
+            }
+        }
+    }
+
+    Ok(ParseResult {
+           tests: collected_tests,
+           includes: collected_includes,
+       })
+}
+
+pub fn run_config(config_filename: &Path, filter: &Option<Regex>) -> Result<RunConfigResult, ()> {
+    let mut result: RunConfigResult = Default::default();
+    let current_dir = match env::current_dir() {
+        Ok(current_dir) => current_dir,
+        Err(err) => {
+            eprintln_red!("cannot get the current working directory: {}", err);
+            return Err(());
+        }
+    };
+
+    let ParseResult { tests, includes } = parse_config(config_filename)?;
+
+    // We move to the directory containing the configuration file. This way tests are always
+    // executed from this directory.
+    let config_dir = config_filename.parent().unwrap();
+
+    if config_dir.to_str() != Some("") {
+        if let Err(error) = env::set_current_dir(config_dir) {
+            eprintln_red!("Cannot move the directory containing {}: {}",
+                          config_filename.display(),
+                          error);
+            return Err(());
+        }
+    }
+
+    for include in &includes {
+        eprintln_bold!("Including {}", include);
+        let include = PathBuf::from(include);
+        result.merge(run_config(&include, filter)?);
+    }
+
+    if !includes.is_empty() {
+        eprintln_bold!("Going back to {}", config_filename.display());
+    }
+
+    for test in tests {
+        if let Some(ref regex) = *filter {
+            if !regex.is_match(&*test.name) {
+                result.ignored += 1;
+                eprintln_bold!("Test {} ignored", test.name);
+                continue;
+            }
+        }
+
+        let test_success = test.run();
+        if test_success {
+            result.successes.push(test.name);
+        } else {
+            result.failures.push(test.name);
+        }
+    }
+
+
+    if let Err(error) = env::set_current_dir(current_dir) {
+        eprintln_red!("Cannot move back to the previous working directory: {}",
+                      error);
+        return Err(());
+    }
+
+    Ok(result)
+}
+
+
+pub fn run_config_root(config_filename: Option<&OsStr>,
+                       filter: &Option<Regex>)
+                       -> Result<RunConfigResult, ()> {
+    let config_filename = match config_filename.map(PathBuf::from).or_else(find_config_file) {
+        Some(config_filename) => config_filename,
+        None => {
+            eprintln_red!("{} not found", CONFIG_FILE_NAME);
+            return Err(());
+        }
+    };
+
+    run_config(&config_filename, filter)
 }

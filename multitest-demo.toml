@@ -1,3 +1,5 @@
+includes = ["multitest-demo-subfolder/multitest-demo2.toml"]
+
 [[tests]]
 name = "true"
 command = ["true"]
@@ -9,6 +11,10 @@ command = ["false"]
 [[tests]]
 name = "command_that_don't_exist"
 command = ["command_that_don't_exist"]
+
+[[tests]]
+name = "pwd"
+command = ["pwd"]
 
 [[tests]]
 name = "variables1-{{foo}}-{{bar}}{% if capitalize %}-capitalize{% endif %}"
