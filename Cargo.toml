@@ -9,6 +9,7 @@ build = "build.rs"
 [dependencies]
 atty = "0.2"
 clap = "2.20"
+glob = "0.2"
 liquid = "0.10"
 shell-escape = "0.1"
 regex = "0.2"

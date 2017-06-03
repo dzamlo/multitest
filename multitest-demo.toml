@@ -1,4 +1,4 @@
-includes = ["multitest-demo-subfolder/multitest-demo2.toml"]
+includes = ["multitest-demo-subfolder/*.toml"]
 
 [[tests]]
 name = "true"

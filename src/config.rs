@@ -1,3 +1,4 @@
+use glob::glob;
 use liquid::{self, Context, Renderable, Template};
 use regex::Regex;
 use std::collections::HashMap;
@@ -143,7 +144,7 @@ impl Variable {
 
 struct ParseResult {
     tests: Vec<Test<String, String, String>>,
-    includes: Vec<String>,
+    includes: Vec<PathBuf>,
 }
 
 fn toml_value_to_liquid(toml_value: &Value) -> liquid::Value {
@@ -394,7 +395,25 @@ fn parse_config(config_filename: &Path) -> Result<ParseResult, ()> {
     if let Some(includes) = config_parsed.get("includes").and_then(Value::as_array) {
         for include in includes {
             match Value::as_str(include) {
-                Some(include) => collected_includes.push(include.to_string()),
+                Some(include) => {
+                    match glob(include) {
+                        Ok(paths) => {
+                            for path in paths {
+                                match path {
+                                    Ok(path) => collected_includes.push(path),
+                                    Err(err) => {
+                                        eprintln_red!("{}", err);
+                                        return Err(());
+                                    }
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            eprintln_red!("Invalid include glob pattern: {}", err);
+                            return Err(());
+                        }
+                    }
+                }
                 None => {
                     eprintln_red!("includes must be strings");
                     return Err(());
@@ -435,8 +454,7 @@ pub fn run_config(config_filename: &Path, filter: &Option<Regex>) -> Result<RunC
     }
 
     for include in &includes {
-        eprintln_bold!("Including {}", include);
-        let include = PathBuf::from(include);
+        eprintln_bold!("Including {}", include.display());
         result.merge(run_config(&include, filter)?);
     }
 
