@@ -455,7 +455,7 @@ pub fn run_config(config_filename: &Path, filter: &Option<Regex>) -> Result<RunC
 
     for include in &includes {
         eprintln_bold!("Including {}", include.display());
-        result.merge(run_config(&include, filter)?);
+        result.merge(run_config(include, filter)?);
     }
 
     if !includes.is_empty() {
