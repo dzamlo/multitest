@@ -32,10 +32,10 @@ impl TestTemplate {
         let command_templates = test.command
             .iter()
             .map(|arg| {
-                     liquid::parse(&*arg, Default::default()).map_err(|error| {
+                liquid::parse(&*arg, Default::default()).map_err(|error| {
                     eprintln_red!("error while parsing an arg template: {}", error)
                 })
-                 })
+            })
             .collect::<Result<Vec<_>, ()>>()?;
 
         let env_templates = test.env
@@ -43,23 +43,23 @@ impl TestTemplate {
             .map(|&(ref name, ref value)| {
                 let name = liquid::parse(name, Default::default())
                     .map_err(|error| {
-                                 eprintln_red!("error while parsing an arg template: {}", error)
-                             })?;
+                        eprintln_red!("error while parsing an arg template: {}", error)
+                    })?;
                 let value = liquid::parse(value, Default::default())
                     .map_err(|error| {
-                                 eprintln_red!("error while parsing an arg template: {}", error)
-                             })?;
+                        eprintln_red!("error while parsing an arg template: {}", error)
+                    })?;
 
                 Ok((name, value))
             })
             .collect::<Result<Vec<_>, ()>>()?;
 
         Ok(TestTemplate {
-               name: name_template,
-               command: command_templates,
-               clear_env: test.clear_env,
-               env: env_templates,
-           })
+            name: name_template,
+            command: command_templates,
+            clear_env: test.clear_env,
+            env: env_templates,
+        })
     }
 }
 
@@ -130,9 +130,9 @@ impl Variable {
                 let values = values.iter().map(toml_value_to_liquid).collect();
 
                 Ok(Variable {
-                       name: name,
-                       values: values,
-                   })
+                    name: name,
+                    values: values,
+                })
             }
             None => {
                 eprintln_red!("The values of the variables must be arrays");
@@ -158,12 +158,12 @@ fn toml_value_to_liquid(toml_value: &Value) -> liquid::Value {
             liquid::Value::Array(value.iter().map(toml_value_to_liquid).collect())
         }
         Value::Table(ref value) => {
-            liquid::Value::Object(value
-                                      .iter()
-                                      .map(|(key, value)| {
-                                               (key.clone(), toml_value_to_liquid(value))
-                                           })
-                                      .collect())
+            liquid::Value::Object(
+                value
+                    .iter()
+                    .map(|(key, value)| (key.clone(), toml_value_to_liquid(value)))
+                    .collect(),
+            )
         }
     }
 }
@@ -247,8 +247,10 @@ fn env_from_table(table: &Value) -> Result<(String, String), ()> {
             Err(())
         }
         (None, Some(value)) => {
-            eprintln_red!("Error: environment variable with value \"{}\" without a name",
-                          value);
+            eprintln_red!(
+                "Error: environment variable with value \"{}\" without a name",
+                value
+            );
             Err(())
         }
         (None, None) => {
@@ -258,11 +260,12 @@ fn env_from_table(table: &Value) -> Result<(String, String), ()> {
     }
 }
 
-fn gen_matrices(test_template: &TestTemplate,
-                variables: &[Variable],
-                variables_values: &mut HashMap<String, liquid::Value>,
-                collected_test: &mut Vec<Test<String, String, String>>)
-                -> Result<(), ()> {
+fn gen_matrices(
+    test_template: &TestTemplate,
+    variables: &[Variable],
+    variables_values: &mut HashMap<String, liquid::Value>,
+    collected_test: &mut Vec<Test<String, String, String>>,
+) -> Result<(), ()> {
     if variables.is_empty() {
         let mut context = Context::with_values(variables_values.clone());
         let name = match test_template.name.render(&mut context) {
@@ -302,9 +305,11 @@ fn gen_matrices(test_template: &TestTemplate,
                     Ok(Some(name)) => Ok(name),
                     Ok(None) => Ok("".to_string()),
                     Err(error) => {
-                        eprintln_red!("error while rendering an environment variable name \
+                        eprintln_red!(
+                            "error while rendering an environment variable name \
                                        template: {}",
-                                      error);
+                            error
+                        );
                         Err(())
                     }
                 }?;
@@ -314,9 +319,11 @@ fn gen_matrices(test_template: &TestTemplate,
                     Ok(Some(name)) => Ok(name),
                     Ok(None) => Ok("".to_string()),
                     Err(error) => {
-                        eprintln_red!("error while rendering an environment variable value \
+                        eprintln_red!(
+                            "error while rendering an environment variable value \
                                        template: {}",
-                                      error);
+                            error
+                        );
                         Err(())
                     }
                 }?;
@@ -333,10 +340,12 @@ fn gen_matrices(test_template: &TestTemplate,
         let current_variable_name = &current_variable.name;
         for value in &current_variable.values {
             variables_values.insert(current_variable_name.to_string(), value.clone());
-            gen_matrices(test_template,
-                         &variables[1..],
-                         variables_values,
-                         collected_test)?;
+            gen_matrices(
+                test_template,
+                &variables[1..],
+                variables_values,
+                collected_test,
+            )?;
         }
 
         Ok(())
@@ -383,10 +392,12 @@ fn parse_config(config_filename: &Path) -> Result<ParseResult, ()> {
                 None => vec![],
             };
 
-            gen_matrices(&test_template,
-                         &variables[..],
-                         &mut HashMap::new(),
-                         &mut collected_tests)?;
+            gen_matrices(
+                &test_template,
+                &variables[..],
+                &mut HashMap::new(),
+                &mut collected_tests,
+            )?;
         }
     }
 
@@ -423,9 +434,9 @@ fn parse_config(config_filename: &Path) -> Result<ParseResult, ()> {
     }
 
     Ok(ParseResult {
-           tests: collected_tests,
-           includes: collected_includes,
-       })
+        tests: collected_tests,
+        includes: collected_includes,
+    })
 }
 
 pub fn run_config(config_filename: &Path, filter: &Option<Regex>) -> Result<RunConfigResult, ()> {
@@ -446,9 +457,11 @@ pub fn run_config(config_filename: &Path, filter: &Option<Regex>) -> Result<RunC
 
     if config_dir.to_str() != Some("") {
         if let Err(error) = env::set_current_dir(config_dir) {
-            eprintln_red!("Cannot move the directory containing {}: {}",
-                          config_filename.display(),
-                          error);
+            eprintln_red!(
+                "Cannot move the directory containing {}: {}",
+                config_filename.display(),
+                error
+            );
             return Err(());
         }
     }
@@ -481,8 +494,10 @@ pub fn run_config(config_filename: &Path, filter: &Option<Regex>) -> Result<RunC
 
 
     if let Err(error) = env::set_current_dir(current_dir) {
-        eprintln_red!("Cannot move back to the previous working directory: {}",
-                      error);
+        eprintln_red!(
+            "Cannot move back to the previous working directory: {}",
+            error
+        );
         return Err(());
     }
 
@@ -490,9 +505,10 @@ pub fn run_config(config_filename: &Path, filter: &Option<Regex>) -> Result<RunC
 }
 
 
-pub fn run_config_root(config_filename: Option<&OsStr>,
-                       filter: &Option<Regex>)
-                       -> Result<RunConfigResult, ()> {
+pub fn run_config_root(
+    config_filename: Option<&OsStr>,
+    filter: &Option<Regex>,
+) -> Result<RunConfigResult, ()> {
     let config_filename = match config_filename.map(PathBuf::from).or_else(find_config_file) {
         Some(config_filename) => config_filename,
         None => {

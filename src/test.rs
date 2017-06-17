@@ -13,11 +13,12 @@ pub struct Test<T1, T2, T3> {
 }
 
 impl<T1, T2, T3> Test<T1, T2, T3> {
-    pub fn new<S: Into<String>>(name: S,
-                                command: Vec<T1>,
-                                clear_env: bool,
-                                env: Vec<(T2, T3)>)
-                                -> Test<T1, T2, T3> {
+    pub fn new<S: Into<String>>(
+        name: S,
+        command: Vec<T1>,
+        clear_env: bool,
+        env: Vec<(T2, T3)>,
+    ) -> Test<T1, T2, T3> {
         Test {
             name: name.into(),
             command: command,
@@ -30,10 +31,12 @@ impl<T1, T2, T3> Test<T1, T2, T3> {
 impl<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> fmt::Display for Test<T1, T2, T3> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for &(ref name, ref value) in &self.env[..] {
-            write!(f,
-                   "{}={} ",
-                   escape(name.as_ref().to_string_lossy()),
-                   escape(value.as_ref().to_string_lossy()))?;
+            write!(
+                f,
+                "{}={} ",
+                escape(name.as_ref().to_string_lossy()),
+                escape(value.as_ref().to_string_lossy())
+            )?;
         }
 
         write!(f, "{}", escape(self.command[0].as_ref().to_string_lossy()))?;
