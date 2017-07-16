@@ -307,7 +307,7 @@ fn gen_matrices(
                     Err(error) => {
                         eprintln_red!(
                             "error while rendering an environment variable name \
-                                       template: {}",
+                             template: {}",
                             error
                         );
                         Err(())
@@ -321,7 +321,7 @@ fn gen_matrices(
                     Err(error) => {
                         eprintln_red!(
                             "error while rendering an environment variable value \
-                                       template: {}",
+                             template: {}",
                             error
                         );
                         Err(())
