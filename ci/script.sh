@@ -3,6 +3,7 @@
 set -ex
 
 main() {
+    export RUST_BACKTRACE=1
     cross build --target $TARGET
     cross build --target $TARGET --release
 
