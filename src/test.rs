@@ -74,22 +74,20 @@ impl<T1: AsRef<OsStr>, T2: AsRef<OsStr>, T3: AsRef<OsStr>> Test<T1, T2, T3> {
                 eprintln_red!("Test {} failed: {}", self.name, error);
                 false
             }
-            Ok(status) => {
-                if status.success() {
-                    eprintln_green!("Test {} was successful", self.name);
-                    true
-                } else {
-                    match status.code() {
-                        Some(code) => {
-                            eprintln_red!("Test {} failed: exit code {}", self.name, code);
-                        }
-                        None => {
-                            eprintln_red!("Test {} failed: no exit code", self.name);
-                        }
+            Ok(status) => if status.success() {
+                eprintln_green!("Test {} was successful", self.name);
+                true
+            } else {
+                match status.code() {
+                    Some(code) => {
+                        eprintln_red!("Test {} failed: exit code {}", self.name, code);
                     }
-                    false
+                    None => {
+                        eprintln_red!("Test {} failed: no exit code", self.name);
+                    }
                 }
-            }
+                false
+            },
         }
     }
 }

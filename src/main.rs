@@ -27,13 +27,11 @@ fn main() {
         .map(|filter| Regex::new(filter).unwrap());
     let color_choice = match matches.value_of("color").unwrap() {
         "always" => ColorChoice::Always,
-        "auto" => {
-            if atty::is(atty::Stream::Stderr) {
-                ColorChoice::Auto
-            } else {
-                ColorChoice::Never
-            }
-        }
+        "auto" => if atty::is(atty::Stream::Stderr) {
+            ColorChoice::Auto
+        } else {
+            ColorChoice::Never
+        },
         "never" => ColorChoice::Never,
         _ => unreachable!(),
     };

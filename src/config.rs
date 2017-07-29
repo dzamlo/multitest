@@ -157,14 +157,12 @@ fn toml_value_to_liquid(toml_value: &Value) -> liquid::Value {
         Value::Array(ref value) => {
             liquid::Value::Array(value.iter().map(toml_value_to_liquid).collect())
         }
-        Value::Table(ref value) => {
-            liquid::Value::Object(
-                value
-                    .iter()
-                    .map(|(key, value)| (key.clone(), toml_value_to_liquid(value)))
-                    .collect(),
-            )
-        }
+        Value::Table(ref value) => liquid::Value::Object(
+            value
+                .iter()
+                .map(|(key, value)| (key.clone(), toml_value_to_liquid(value)))
+                .collect(),
+        ),
     }
 }
 
@@ -406,25 +404,21 @@ fn parse_config(config_filename: &Path) -> Result<ParseResult, ()> {
     if let Some(includes) = config_parsed.get("includes").and_then(Value::as_array) {
         for include in includes {
             match Value::as_str(include) {
-                Some(include) => {
-                    match glob(include) {
-                        Ok(paths) => {
-                            for path in paths {
-                                match path {
-                                    Ok(path) => collected_includes.push(path),
-                                    Err(err) => {
-                                        eprintln_red!("{}", err);
-                                        return Err(());
-                                    }
-                                }
+                Some(include) => match glob(include) {
+                    Ok(paths) => for path in paths {
+                        match path {
+                            Ok(path) => collected_includes.push(path),
+                            Err(err) => {
+                                eprintln_red!("{}", err);
+                                return Err(());
                             }
                         }
-                        Err(err) => {
-                            eprintln_red!("Invalid include glob pattern: {}", err);
-                            return Err(());
-                        }
+                    },
+                    Err(err) => {
+                        eprintln_red!("Invalid include glob pattern: {}", err);
+                        return Err(());
                     }
-                }
+                },
                 None => {
                     eprintln_red!("includes must be strings");
                     return Err(());
