@@ -1,5 +1,5 @@
 use glob::glob;
-use liquid::{self, Context, Renderable, Template};
+use liquid::{self, Template};
 use regex::Regex;
 use std::collections::HashMap;
 use std::env;
@@ -21,7 +21,8 @@ pub struct TestTemplate {
 
 impl TestTemplate {
     fn try_from_test(test: &Test<String, String, String>) -> Result<TestTemplate, ()> {
-        let name_template = match liquid::parse(&*test.name, Default::default()) {
+        let parser = liquid::ParserBuilder::with_liquid().build();
+        let name_template = match parser.parse(&*test.name) {
             Ok(name_template) => name_template,
             Err(error) => {
                 eprintln_red!("error while parsing name template: {}", error);
@@ -32,7 +33,7 @@ impl TestTemplate {
         let command_templates = test.command
             .iter()
             .map(|arg| {
-                liquid::parse(&*arg, Default::default()).map_err(|error| {
+                parser.parse(&*arg).map_err(|error| {
                     eprintln_red!("error while parsing an arg template: {}", error)
                 })
             })
@@ -41,10 +42,10 @@ impl TestTemplate {
         let env_templates = test.env
             .iter()
             .map(|&(ref name, ref value)| {
-                let name = liquid::parse(name, Default::default()).map_err(|error| {
+                let name = parser.parse(name).map_err(|error| {
                     eprintln_red!("error while parsing an arg template: {}", error)
                 })?;
-                let value = liquid::parse(value, Default::default()).map_err(|error| {
+                let value = parser.parse(value).map_err(|error| {
                     eprintln_red!("error while parsing an arg template: {}", error)
                 })?;
 
@@ -146,11 +147,11 @@ struct ParseResult {
 
 fn toml_value_to_liquid(toml_value: &Value) -> liquid::Value {
     match *toml_value {
-        Value::String(ref value) => liquid::Value::Str(value.clone()),
-        Value::Integer(value) => liquid::Value::Num(value as f32),
-        Value::Float(value) => liquid::Value::Num(value as f32),
-        Value::Boolean(value) => liquid::Value::Bool(value),
-        Value::Datetime(ref value) => liquid::Value::Str(value.to_string()),
+        Value::String(ref value) => liquid::Value::scalar(value.clone()),
+        Value::Integer(value) => liquid::Value::scalar(value as f32),
+        Value::Float(value) => liquid::Value::scalar(value as f32),
+        Value::Boolean(value) => liquid::Value::scalar(value),
+        Value::Datetime(ref value) => liquid::Value::scalar(value.to_string()),
         Value::Array(ref value) => {
             liquid::Value::Array(value.iter().map(toml_value_to_liquid).collect())
         }
@@ -262,31 +263,24 @@ fn gen_matrices(
     collected_test: &mut Vec<Test<String, String, String>>,
 ) -> Result<(), ()> {
     if variables.is_empty() {
-        let mut context = Context::with_values(variables_values.clone());
-        let name = match test_template.name.render(&mut context) {
-            Ok(Some(name)) => name,
-            Ok(None) => "".to_string(),
+        let name = match test_template.name.render(variables_values) {
+            Ok(name) => name,
             Err(error) => {
                 eprintln_red!("error while rendering name template: {}", error);
                 return Err(());
             }
         };
 
-        variables_values.insert("name".to_string(), liquid::Value::Str(name.clone()));
+        variables_values.insert("name".to_string(), liquid::Value::scalar(name.clone()));
 
         let command = test_template
             .command
             .iter()
-            .map(|arg_template| {
-                let mut context = Context::with_values(variables_values.clone());
-
-                match arg_template.render(&mut context) {
-                    Ok(Some(name)) => Ok(name),
-                    Ok(None) => Ok("".to_string()),
-                    Err(error) => {
-                        eprintln_red!("error while rendering a name template: {}", error);
-                        Err(())
-                    }
+            .map(|arg_template| match arg_template.render(variables_values) {
+                Ok(name) => Ok(name),
+                Err(error) => {
+                    eprintln_red!("error while rendering a name template: {}", error);
+                    Err(())
                 }
             })
             .collect::<Result<Vec<_>, ()>>()?;
@@ -295,10 +289,8 @@ fn gen_matrices(
             .env
             .iter()
             .map(|&(ref name_template, ref value_template)| {
-                let mut context = Context::with_values(variables_values.clone());
-                let name = match name_template.render(&mut context) {
-                    Ok(Some(name)) => Ok(name),
-                    Ok(None) => Ok("".to_string()),
+                let name = match name_template.render(variables_values) {
+                    Ok(name) => Ok(name),
                     Err(error) => {
                         eprintln_red!(
                             "error while rendering an environment variable name \
@@ -309,10 +301,8 @@ fn gen_matrices(
                     }
                 }?;
 
-                let mut context = Context::with_values(variables_values.clone());
-                let value = match value_template.render(&mut context) {
-                    Ok(Some(name)) => Ok(name),
-                    Ok(None) => Ok("".to_string()),
+                let value = match value_template.render(&variables_values) {
+                    Ok(name) => Ok(name),
                     Err(error) => {
                         eprintln_red!(
                             "error while rendering an environment variable value \
