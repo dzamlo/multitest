@@ -41,14 +41,12 @@ impl TestTemplate {
         let env_templates = test.env
             .iter()
             .map(|&(ref name, ref value)| {
-                let name = liquid::parse(name, Default::default())
-                    .map_err(|error| {
-                        eprintln_red!("error while parsing an arg template: {}", error)
-                    })?;
-                let value = liquid::parse(value, Default::default())
-                    .map_err(|error| {
-                        eprintln_red!("error while parsing an arg template: {}", error)
-                    })?;
+                let name = liquid::parse(name, Default::default()).map_err(|error| {
+                    eprintln_red!("error while parsing an arg template: {}", error)
+                })?;
+                let value = liquid::parse(value, Default::default()).map_err(|error| {
+                    eprintln_red!("error while parsing an arg template: {}", error)
+                })?;
 
                 Ok((name, value))
             })
@@ -113,7 +111,6 @@ impl RunConfigResult {
         self.failures.is_empty() && total > 0
     }
 }
-
 
 #[derive(Debug)]
 struct Variable {
@@ -359,7 +356,6 @@ fn parse_config(config_filename: &Path) -> Result<ParseResult, ()> {
         }
     };
 
-
     let mut config_text = String::new();
 
     if let Err(error) = config_file.read_to_string(&mut config_text) {
@@ -486,7 +482,6 @@ pub fn run_config(config_filename: &Path, filter: &Option<Regex>) -> Result<RunC
         }
     }
 
-
     if let Err(error) = env::set_current_dir(current_dir) {
         eprintln_red!(
             "Cannot move back to the previous working directory: {}",
@@ -497,7 +492,6 @@ pub fn run_config(config_filename: &Path, filter: &Option<Regex>) -> Result<RunC
 
     Ok(result)
 }
-
 
 pub fn run_config_root(
     config_filename: Option<&OsStr>,

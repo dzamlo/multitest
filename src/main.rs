@@ -1,12 +1,12 @@
 extern crate atty;
 #[macro_use]
 extern crate clap;
+extern crate glob;
 extern crate liquid;
 extern crate regex;
 extern crate shell_escape;
 extern crate termcolor;
 extern crate toml;
-extern crate glob;
 
 #[macro_use]
 mod eprint;

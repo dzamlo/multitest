@@ -18,9 +18,7 @@ pub fn build_cli() -> App<'static, 'static> {
             Arg::with_name("config_file")
                 .long("config")
                 .value_name("CONFIG_FILE")
-                .help(
-                    "Select a configuration file instead of searching for a multitest.toml file",
-                ),
+                .help("Select a configuration file instead of searching for a multitest.toml file"),
         )
         .arg(
             Arg::with_name("filter")
