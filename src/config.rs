@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use test::Test;
 use toml::Value;
 
-const CONFIG_FILE_NAME: &'static str = "multitest.toml";
+const CONFIG_FILE_NAME: &str = "multitest.toml";
 
 pub struct TestTemplate {
     pub name: Template,
@@ -301,7 +301,7 @@ fn gen_matrices(
                     }
                 }?;
 
-                let value = match value_template.render(&variables_values) {
+                let value = match value_template.render(variables_values) {
                     Ok(name) => Ok(name),
                     Err(error) => {
                         eprintln_red!(
