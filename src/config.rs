@@ -91,7 +91,7 @@ impl RunConfigResult {
         }
 
         if !failures.is_empty() {
-            eprintln_red!("Failures ({}/{}):", successes.len(), total);
+            eprintln_red!("Failures ({}/{}):", failures.len(), total);
             for failure in failures {
                 eprintln_red!("  {}", failure);
             }
