@@ -21,9 +21,9 @@ impl<T1, T2, T3> Test<T1, T2, T3> {
     ) -> Test<T1, T2, T3> {
         Test {
             name: name.into(),
-            command: command,
-            clear_env: clear_env,
-            env: env,
+            command,
+            clear_env,
+            env,
         }
     }
 }

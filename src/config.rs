@@ -127,10 +127,7 @@ impl Variable {
             Some(values) => {
                 let values = values.iter().map(toml_value_to_liquid).collect();
 
-                Ok(Variable {
-                    name: name,
-                    values: values,
-                })
+                Ok(Variable { name, values })
             }
             None => {
                 eprintln_red!("The values of the variables must be arrays");
