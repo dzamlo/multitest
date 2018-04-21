@@ -21,7 +21,7 @@ package() {
   cd multitest
 
   install -Dm755 "target/release/multitest" "$pkgdir/usr/bin/multitest"
-  install -Dm644 "target/release/build/multitest-"*"/out/multitest.bash-completion" \
+  install -Dm644 "target/release/build/multitest-"*"/out/multitest.bash" \
       "$pkgdir/usr/share/bash-completion/completions/multitest"
   install -Dm644 "target/release/build/multitest-"*"/out/multitest.fish" \
       "$pkgdir/usr/share/fish/vendor_completions.d/multitest.fish"
